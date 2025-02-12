@@ -123,7 +123,7 @@ bool pntr_keep_going(pntr_window* window);
 void pntr_sound_update(pntr_sound_engine* se);
 
 // call in main-loop to draw the screen on the window
-void pntr_screen_update(pntr_window* window);
+void pntr_screen_update(pntr_window* window, pntr_image* screen);
 
 // call to stream audio. callback(float* audio, int n)
 void pntr_sound_process(pntr_sound_engine* se, pntr_audio_callback callback);

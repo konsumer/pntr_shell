@@ -131,7 +131,7 @@ void pntr_sound_process(pntr_sound_engine* se, pntr_audio_callback callback);
 // unload the sound-engine
 void pntr_sound_unload(pntr_sound_engine* se);
 
-// load WAV, OGG, MP3, XM, MOD file
+// load WAV, OGG, MP3, FLAC, XM, MOD file
 pntr_sound* pntr_audio_load(pntr_sound_engine* se, char* filename);
 
 // unload sound

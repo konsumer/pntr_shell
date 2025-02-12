@@ -112,10 +112,10 @@ It has the full [pntr API](https://github.com/RobLoach/pntr) and these:
 
 ```c
 // initialize the sound-engine (mixer and streaming)
-pntr_audio_engine* se pntr_audio_init();
+pntr_audio_engine* pntr_audio_init();
 
 // initialize the window
-pntr_window* pntr_screen_init(pntr_image* screen, "my game");
+pntr_window* pntr_screen_init(pntr_image* screen, char* title);
 
 // unload window
 void pntr_screen_unload(pntr_window* window);
@@ -139,7 +139,7 @@ void pntr_audio_unload(pntr_audio_engine* se);
 pntr_sound* pntr_sound_load(pntr_audio_engine* se, char* filename);
 
 // unload a sound
-void pntr_sound_unload(pntr_audio_engine* se, pntr_sound* sound);
+void pntr_sound_unload(pntr_sound* sound);
 
 // play a sound
 void pntr_sound_play(pntr_sound* sound);

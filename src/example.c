@@ -9,6 +9,7 @@ int main() {
     pntr_window* window = pntr_screen_init(screen, "my game");
 
     while(pntr_keep_going(window) && !exit) {
+        pntr_clear_background(screen, PNTR_BLACK);
         pntr_draw_circle_fill(screen, 100, 100, 80, PNTR_RED);
 
         pntr_screen_update(window, screen);

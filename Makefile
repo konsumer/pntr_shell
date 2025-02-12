@@ -4,6 +4,9 @@
 
 CFLAGS ?= -Wall -Wextra -std=c99 -I src/lib -I src/lib/external
 
+# debug
+# CFLAGS += -g
+
 ifeq ($(OS),Windows_NT)
 	LDFLAGS = -lgdi32
 else

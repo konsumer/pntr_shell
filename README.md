@@ -4,8 +4,9 @@ This is a very light system for drawing things on the screen, receiving input, a
 
 If you want to target multiple backends and share more state at the app-layer, definitely check out [pntr_app](https://github.com/robloach/pntr_app), as it is more mature, complex, and has a lot more features. For a lot of things it might be easier to work with than this.
 
-
 ## usage
+
+## build
 
 You can include it in you app a few ways, but easiest is probly cmake:
 
@@ -17,7 +18,7 @@ PROJECT(mygame
 INCLUDE(FetchContent)
 
 FetchContent_Declare(pntr_shell
-  URL https://github.com/konsumer/pntr_shell/archive/refs/heads/master.zip
+  URL https://github.com/konsumer/pntr_shell/archive/refs/heads/main.zip
 )
 FetchContent_MakeAvailable(pntr_shell)
 
@@ -31,6 +32,11 @@ You can compile like this:
 cmake -B build -G Ninja
 cmnake --build build
 ```
+
+Another option is just to take this whole repo, and put your code in src/example.c, then run `make`.
+
+### code
+
 
 Use it in your c-program like this:
 
@@ -123,27 +129,27 @@ void pntr_audio_update(pntr_audio_engine* se);
 // call in main-loop to draw the screen on the window
 void pntr_screen_update(pntr_window* window, pntr_image* screen);
 
-// call to stream audio. callback(float* audio, int n)
+// call to stream audio.
 void pntr_audio_process(pntr_audio_engine* se, pntr_sound_callback callback);
 
 // unload the sound-engine
 void pntr_audio_unload(pntr_audio_engine* se);
 
 // load WAV, OGG, MP3, FLAC, XM, MOD file
-pntr_audio* pntr_sound_load(pntr_audio_engine* se, char* filename);
+pntr_sound* pntr_sound_load(pntr_audio_engine* se, char* filename);
 
 // unload a sound
-void pntr_sound_unload(pntr_audio* sound);
+void pntr_sound_unload(pntr_audio_engine* se, pntr_sound* sound);
 
 // play a sound
-void pntr_sound_play(pntr_audio* sound);
+void pntr_sound_play(pntr_sound* sound);
 
 // stop a sound
-void pntr_sound_stop(pntr_audio* sound);
+void pntr_sound_stop(pntr_sound* sound);
 
-// set a sound to loop
-void pntr_sound_set_loop(pntr_audio* sound, bool loop);
+// set a sound to loop or not
+void pntr_sound_set_loop(pntr_sound* sound, bool loop);
 
-// set a specific offset on a sound
-void pntr_sound_set_offset(pntr_audio*, int offset);
+// set a specific offset on a sound (in ms)
+void pntr_sound_seek(pntr_sound* sound, int offset);
 ```

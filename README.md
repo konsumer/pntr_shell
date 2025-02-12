@@ -111,7 +111,7 @@ pntr_audio_engine* se pntr_audio_init();
 // initialize the window
 pntr_window* pntr_screen_init(pntr_image* screen, "my game");
 
-// umnload window
+// unload window
 void pntr_screen_unload(pntr_window* window);
 
 // check if we should keep running
@@ -132,7 +132,7 @@ void pntr_audio_unload(pntr_audio_engine* se);
 // load WAV, OGG, MP3, FLAC, XM, MOD file
 pntr_audio* pntr_sound_load(pntr_audio_engine* se, char* filename);
 
-// unload sound
+// unload a sound
 void pntr_sound_unload(pntr_audio* sound);
 
 // play a sound

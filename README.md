@@ -2,7 +2,7 @@ The idea here is that you want to use [pntr](https://github.com/robloach/pntr) t
 
 This is a very light system for drawing things on the screen, receiving input, and making sound (both streaming and 1-shot.) It should work on every major platform, and not really require you to structure your app any particular way. No state is stored anywhere, so you pass your audio-engine or screen-image or whatever around, however you want to.
 
-If you want to target multiple backends and share more state at the app-layer, definitely check out [pntr_app](https://github.com/robloach/pntr_app), as it is more mature, complex, and has a lot more features. For a lot of things it might be easier to work with.
+If you want to target multiple backends and share more state at the app-layer, definitely check out [pntr_app](https://github.com/robloach/pntr_app), as it is more mature, complex, and has a lot more features. For a lot of things it might be easier to work with than this.
 
 
 ## usage
@@ -86,7 +86,7 @@ int main() {
     pntr_sound_engine* se = pntr_sound_init();
     pntr_screen_init(screen, "my game");
 
-    while(pntr_keep_going()) {
+    while(pntr_keep_going() && !exit) {
         pntr_draw_circle_fill(screen, 100, 100, 80, PNTR_RED);
 
         pntr_sound_process(se, &app_get_audio);

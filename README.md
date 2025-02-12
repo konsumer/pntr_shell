@@ -49,17 +49,17 @@ int main() {
 
     pntr_image* screen = pntr_new_image(200, 200);
     pntr_audio_engine* se = pntr_audio_init();
-    pntr_window* window = pntr_screen_init(screen, "my game");
+    pntr_window* window = pntr_window_init(screen, "my game");
 
-    while(pntr_keep_going(window) && !exit) {
+    while(pntr_window_keep_going(window) && !exit) {
         pntr_draw_circle_fill(screen, 100, 100, 80, PNTR_RED);
 
-        pntr_screen_update(window, screen);
+        pntr_window_update(window, screen);
         pntr_audio_update(se);
     }
 
     pntr_unload_image(screen);
-    pntr_screen_unload(window);
+    pntr_window_unload(window);
     pntr_audio_unload(se);
     return 0;
 }
@@ -89,18 +89,18 @@ int main() {
 
     pntr_image* screen = pntr_new_image(200, 200);
     pntr_audio_engine* se = pntr_audio_init();
-    pntr_window* window = pntr_screen_init(screen, "my game");
+    pntr_window* window = pntr_window_init(screen, "my game");
 
-    while(pntr_keep_going(window) && !exit) {
+    while(pntr_window_keep_going(window) && !exit) {
         pntr_draw_circle_fill(screen, 100, 100, 80, PNTR_RED);
 
         pntr_audio_process(se, &app_get_audio);
         pntr_audio_update(se);
-        pntr_screen_update(window, screen);
+        pntr_window_update(window, screen);
     }
 
     pntr_unload_image(screen);
-    pntr_screen_unload(window);
+    pntr_window_unload(window);
     pntr_audio_unload(se);
     return 0;
 }
@@ -115,19 +115,19 @@ It has the full [pntr API](https://github.com/RobLoach/pntr) and these:
 pntr_audio_engine* pntr_audio_init();
 
 // initialize the window
-pntr_window* pntr_screen_init(pntr_image* screen, char* title);
+pntr_window* pntr_window_init(pntr_image* screen, char* title);
 
 // unload window
-void pntr_screen_unload(pntr_window* window);
+void pntr_window_unload(pntr_window* window);
 
 // check if we should keep running
-bool pntr_keep_going(pntr_window* window);
+bool pntr_window_keep_going(pntr_window* window);
 
 // call in main-loop to fill buffer with audio
 void pntr_audio_update(pntr_audio_engine* se);
 
 // call in main-loop to draw the screen on the window
-void pntr_screen_update(pntr_window* window, pntr_image* screen);
+void pntr_window_update(pntr_window* window, pntr_image* screen);
 
 // call to stream audio.
 void pntr_audio_process(pntr_audio_engine* se, pntr_sound_callback callback);

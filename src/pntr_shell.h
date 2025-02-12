@@ -21,19 +21,19 @@ typedef void (*pntr_sound_callback)(float* audio, int n);
 pntr_audio_engine* pntr_audio_init();
 
 // initialize the window
-pntr_window* pntr_screen_init(pntr_image* screen, char* title);
+pntr_window* pntr_window_init(pntr_image* screen, char* title);
 
 // unload window
-void pntr_screen_unload(pntr_window* window);
+void pntr_window_unload(pntr_window* window);
 
 // check if we should keep running
-bool pntr_keep_going(pntr_window* window);
+bool pntr_window_keep_going(pntr_window* window);
 
 // call in main-loop to fill buffer with audio
 void pntr_audio_update(pntr_audio_engine* se);
 
 // call in main-loop to draw the screen on the window
-void pntr_screen_update(pntr_window* window, pntr_image* screen);
+void pntr_window_update(pntr_window* window, pntr_image* screen);
 
 // call to stream audio. callback(float* audio, int n)
 void pntr_audio_process(pntr_audio_engine* se, pntr_sound_callback callback);
@@ -68,7 +68,7 @@ pntr_audio_engine* pntr_audio_init() {
   return fa;
 }
 
-pntr_window* pntr_screen_init(pntr_image* screen, char* title) {
+pntr_window* pntr_window_init(pntr_image* screen, char* title) {
     pntr_window* window = malloc(sizeof(pntr_window));
     const pntr_window temp = {
         .title = title,
@@ -81,17 +81,17 @@ pntr_window* pntr_screen_init(pntr_image* screen, char* title) {
     return window;
 }
 
-void pntr_screen_unload(pntr_window* window) {
+void pntr_window_unload(pntr_window* window) {
   fenster_close(window);
 }
 
-bool pntr_keep_going(pntr_window* window) {
+bool pntr_window_keep_going(pntr_window* window) {
   return fenster_loop(window) == 0;
 }
 
 void pntr_audio_update(pntr_audio_engine* se) {}
 
-void pntr_screen_update(pntr_window* window, pntr_image* screen) {}
+void pntr_window_update(pntr_window* window, pntr_image* screen) {}
 
 void pntr_audio_process(pntr_audio_engine* se, pntr_sound_callback callback) {}
 

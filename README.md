@@ -43,16 +43,17 @@ int main() {
 
     pntr_image* screen = pntr_new_image(200, 200);
     pntr_sound_engine* se = pntr_sound_init();
-    pntr_screen_init(screen, "my game");
+    pntr_window* window = pntr_screen_init(screen, "my game");
 
-    while(pntr_keep_going() && !exit) {
+    while(pntr_keep_going(window) && !exit) {
         pntr_draw_circle_fill(screen, 100, 100, 80, PNTR_RED);
 
-        // call this in update-loop to keep sound going
+        pntr_screen_update(window, screen);
         pntr_sound_update(se);
     }
 
-    pntr_screen_unload(screen);
+    pntr_unload_image(screen);
+    pntr_screen_unload(window);
     pntr_sound_unload(se);
     return 0;
 }
@@ -84,16 +85,18 @@ int main() {
 
     pntr_image* screen = pntr_new_image(200, 200);
     pntr_sound_engine* se = pntr_sound_init();
-    pntr_screen_init(screen, "my game");
+    pntr_window* window = pntr_screen_init(screen, "my game");
 
-    while(pntr_keep_going() && !exit) {
+    while(pntr_keep_going(window) && !exit) {
         pntr_draw_circle_fill(screen, 100, 100, 80, PNTR_RED);
 
         pntr_sound_process(se, &app_get_audio);
         pntr_sound_update(se);
+        pntr_screen_update(window, screen);
     }
 
-    pntr_screen_unload(screen);
+    pntr_unload_image(screen);
+    pntr_screen_unload(window);
     pntr_sound_unload(se);
     return 0;
 }
@@ -108,19 +111,22 @@ It has the full [pntr API](https://github.com/RobLoach/pntr) and these:
 pntr_sound_engine* se pntr_sound_init();
 
 // initialize the window
-void pntr_screen_init(pntr_image* screen, "my game");
+pntr_window*  pntr_screen_init(pntr_image* screen, "my game");
+
+// umnload window
+void pntr_screen_unload(pntr_window* window);
 
 // check if we should keep running
-bool pntr_keep_going();
+bool pntr_keep_going(pntr_window* window);
 
-// call in main-loop to fuill buffer with audio
+// call in main-loop to fill buffer with audio
 void pntr_sound_update(pntr_sound_engine* se);
+
+// call in main-loop to draw the screen on the window
+void pntr_screen_update(pntr_window* window);
 
 // call to stream audio. callback(float* audio, int n)
 void pntr_sound_process(pntr_sound_engine* se, pntr_audio_callback callback);
-
-// unload the screen
-void pntr_screen_unload(pntr_image* screen);
 
 // unload the sound-engine
 void pntr_sound_unload(pntr_sound_engine* se);
@@ -141,5 +147,5 @@ void pntr_audio_stop(pntr_sound* sound);
 void pntr_audio_set_loop(pntr_sound* sound, bool loop);
 
 // set a specific offset on a sound
-void pntr_audio_set_offset(pntr_sound_engine* se, pntr_sound*, int offset);
+void pntr_audio_set_offset(pntr_sound*, int offset);
 ```

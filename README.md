@@ -42,19 +42,19 @@ int main() {
     bool exit = false;
 
     pntr_image* screen = pntr_new_image(200, 200);
-    pntr_sound_engine* se = pntr_sound_init();
+    pntr_audio_engine* se = pntr_audio_init();
     pntr_window* window = pntr_screen_init(screen, "my game");
 
     while(pntr_keep_going(window) && !exit) {
         pntr_draw_circle_fill(screen, 100, 100, 80, PNTR_RED);
 
         pntr_screen_update(window, screen);
-        pntr_sound_update(se);
+        pntr_audio_update(se);
     }
 
     pntr_unload_image(screen);
     pntr_screen_unload(window);
-    pntr_sound_unload(se);
+    pntr_audio_unload(se);
     return 0;
 }
 ```
@@ -64,19 +64,17 @@ You can also do streaming audio:
 ```c
 #include "pntr_shell.h"
 
-// read more here: https://stellartux.github.io/websynth/guide.html
-static int soundgen(int t) {
-  return (t>>10^t>>11)%5*((t>>14&3^t>>15&1)+1)*t%99+((3+(t>>14&3)-(t>>16&1))/3*t%99&64);
-}
-
 // this is used to track offset for byte-beat
 static int32_t u = 0;
 
 // this is what is called by audio-engine
 // it will mix current audio with soundgen output
 static void app_get_audio(float* audio, int n) {
+  int t;
   for (int i = 0; i < n; i++) {
-    audio[i] = (audio[i]/2.0f) + (soundgen(u++/8) / 2048.0f);
+    t = u++/8;
+    // read more here: https://stellartux.github.io/websynth/guide.html
+    audio[i] = (audio[i]/2.0f) + ( (t>>10^t>>11)%5*((t>>14&3^t>>15&1)+1)*t%99+((3+(t>>14&3)-(t>>16&1))/3*t%99&64) / 2048.0f);
   }
 }
 
@@ -84,20 +82,20 @@ int main() {
     bool exit = false;
 
     pntr_image* screen = pntr_new_image(200, 200);
-    pntr_sound_engine* se = pntr_sound_init();
+    pntr_audio_engine* se = pntr_audio_init();
     pntr_window* window = pntr_screen_init(screen, "my game");
 
     while(pntr_keep_going(window) && !exit) {
         pntr_draw_circle_fill(screen, 100, 100, 80, PNTR_RED);
 
-        pntr_sound_process(se, &app_get_audio);
-        pntr_sound_update(se);
+        pntr_audio_process(se, &app_get_audio);
+        pntr_audio_update(se);
         pntr_screen_update(window, screen);
     }
 
     pntr_unload_image(screen);
     pntr_screen_unload(window);
-    pntr_sound_unload(se);
+    pntr_audio_unload(se);
     return 0;
 }
 ```
@@ -108,10 +106,10 @@ It has the full [pntr API](https://github.com/RobLoach/pntr) and these:
 
 ```c
 // initialize the sound-engine (mixer and streaming)
-pntr_sound_engine* se pntr_sound_init();
+pntr_audio_engine* se pntr_audio_init();
 
 // initialize the window
-pntr_window*  pntr_screen_init(pntr_image* screen, "my game");
+pntr_window* pntr_screen_init(pntr_image* screen, "my game");
 
 // umnload window
 void pntr_screen_unload(pntr_window* window);
@@ -120,32 +118,32 @@ void pntr_screen_unload(pntr_window* window);
 bool pntr_keep_going(pntr_window* window);
 
 // call in main-loop to fill buffer with audio
-void pntr_sound_update(pntr_sound_engine* se);
+void pntr_audio_update(pntr_audio_engine* se);
 
 // call in main-loop to draw the screen on the window
 void pntr_screen_update(pntr_window* window, pntr_image* screen);
 
 // call to stream audio. callback(float* audio, int n)
-void pntr_sound_process(pntr_sound_engine* se, pntr_audio_callback callback);
+void pntr_audio_process(pntr_audio_engine* se, pntr_sound_callback callback);
 
 // unload the sound-engine
-void pntr_sound_unload(pntr_sound_engine* se);
+void pntr_audio_unload(pntr_audio_engine* se);
 
 // load WAV, OGG, MP3, FLAC, XM, MOD file
-pntr_sound* pntr_audio_load(pntr_sound_engine* se, char* filename);
+pntr_audio* pntr_sound_load(pntr_audio_engine* se, char* filename);
 
 // unload sound
-void pntr_audio_unload(pntr_sound* sound);
+void pntr_sound_unload(pntr_audio* sound);
 
 // play a sound
-void pntr_audio_play(pntr_sound* sound);
+void pntr_sound_play(pntr_audio* sound);
 
 // stop a sound
-void pntr_audio_stop(pntr_sound* sound);
+void pntr_sound_stop(pntr_audio* sound);
 
 // set a sound to loop
-void pntr_audio_set_loop(pntr_sound* sound, bool loop);
+void pntr_sound_set_loop(pntr_audio* sound, bool loop);
 
 // set a specific offset on a sound
-void pntr_audio_set_offset(pntr_sound*, int offset);
+void pntr_sound_set_offset(pntr_audio*, int offset);
 ```

@@ -2,7 +2,7 @@
 
 .PHONY: clean
 
-CFLAGS ?= -Wall -Wextra -std=c99 -I src/lib -I src/lib/external
+CFLAGS ?= -std=gnu99
 
 # debug
 # CFLAGS += -g
@@ -14,7 +14,7 @@ else
 	ifeq ($(UNAME_S),Darwin)
 		LDFLAGS = -framework Cocoa -framework AudioToolbox
 	else
-		LDFLAGS = -lX11 -lasound
+		LDFLAGS = -lX11 -lasound -lm
 	endif
 endif
 

@@ -20,7 +20,7 @@
 // this disables raudio logging
 #define TRACELOG(level, ...)
 
-#include "cvector.h"
+#include "external/cvector.h"
 #include "pntr.h"
 #include "external/fenster.h"
 #include "raudio.c"

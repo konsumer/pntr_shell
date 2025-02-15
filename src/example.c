@@ -2,7 +2,8 @@
 
 static int u = 0;
 
-void bytebeat(float* samples, unsigned int frames) {
+void bytebeat(void* samplesPointer, unsigned int frames) {
+    float* samples = (float*)samplesPointer;
   int t;
   float a;
   for (unsigned int frame = 0; frame < frames; frame++){
@@ -27,7 +28,7 @@ int main() {
     pntr_sound wub = pntr_sound_load("example.mp3");
     pntr_sound_play(wub);
 
-    pntr_sound_register(bytebeat);
+    pntr_sound_register(&bytebeat);
 
     while(pntr_keep_going(window) && !exit) {
         pntr_clear_background(screen, PNTR_BLACK);
@@ -40,6 +41,6 @@ int main() {
 
     pntr_unload_image(screen);
     pntr_shell_unload(window);
-    pntr_sound_unregister(bytebeat);
+    pntr_sound_unregister(&bytebeat);
     return 0;
 }

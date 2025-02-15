@@ -5,7 +5,7 @@
 CFLAGS ?= -std=gnu99
 
 # debug
-# CFLAGS += -g
+CFLAGS += -g
 
 ifeq ($(OS),Windows_NT)
 	LDFLAGS = -lgdi32
@@ -22,4 +22,4 @@ example: src/example.c
 	$(CC) $? -o $@ $(CFLAGS) $(LDFLAGS)
 
 clean:
-	rm -f example
+	rm -f example example.exe

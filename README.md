@@ -177,7 +177,7 @@ void pntr_sound_unregister(pntr_sound_callback cb);
 ## TODO
 
 - get cmake working with static-import (via git) and install, for easier/faster inclusion in user's projects
-- support for libretro in raudio: try to use some define that libretro makes, to you just import headers for libretro + pntr_shell
+- support for libretro in raudio: try to use some define that libretro makes, so you just import headers for libretro + pntr_shell, and it detects it
 - make sure this works in emscripten
 - figure out how to deal with raudio `Sound`/`Music` properly (streaming `Music` is nice, but `Sound` can play multiple copies of same sound at once)
 - use this in [null0-pntr](https://github.com/konsumer/null0-pntr)

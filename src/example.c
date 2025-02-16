@@ -33,9 +33,12 @@ int main() {
 
   pntr_sound_register(&bytebeat);
 
+  pntr_font* font = pntr_load_font_default();
+
   while (pntr_keep_going(window) && !exit) {
     pntr_clear_background(screen, PNTR_BLACK);
     pntr_draw_circle_fill(screen, 100, 100, 80, PNTR_RED);
+    pntr_draw_text(screen, font, "Press space to wub", 30, 100, PNTR_WHITE);
 
     if (window->keys[PNTR_APP_KEY_SPACE]) {
       pntr_sound_play(wub);

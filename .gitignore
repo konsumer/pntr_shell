@@ -1,3 +1,6 @@
 .DS_Store
 example
 *.dSYM
+example.html
+example.wasm
+example.js

@@ -202,9 +202,10 @@ pntr_sound pntr_sound_load(char* filename) {
     // I prefer magic-bytes to extension, but raudio already works this way
     // see https://github.com/RobLoach/pntr/issues/191
     pntr_sound sound = LoadMusicStreamFromMemory(GetFileExtension(filename), fileData, dataSize);
-    cvector_push_back(loaded_sounds, sound);
     sound.looping = false;
-    return sound;
+    int index = cvector_size(loaded_sounds);
+    cvector_push_back(loaded_sounds, sound);
+    return loaded_sounds[index];
   } else {
     // is there a better way to return "none" for sound?
     pntr_sound empty = {};

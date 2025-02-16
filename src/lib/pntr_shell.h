@@ -159,7 +159,7 @@ typedef enum pntr_app_key {
     PNTR_APP_KEY_LAST
 } pntr_app_key;
 
-static cvector_vector_type(pntr_sound*) loaded_sounds = NULL;
+static cvector_vector_type(pntr_sound) loaded_sounds = NULL;
 
 // initialize the window & audio-system
 pntr_window* pntr_shell_init(pntr_image* screen, char* title) {
@@ -181,20 +181,15 @@ void pntr_shell_unload(pntr_window* window) {
   fenster_close(window);
   CloseAudioDevice();
   for (int i = 0; i < cvector_size(loaded_sounds); ++i) {
-    if (loaded_sounds[i] != NULL) {
-      UnloadMusicStream(*loaded_sounds[i]);
-    }
+    UnloadMusicStream(loaded_sounds[i]);
   }
   cvector_free(loaded_sounds);
 }
 
 // check if we should keep running (also updates all loaded audio)
 bool pntr_keep_going(pntr_window* window) {
-  // TODO: audio loops
   for (int i = 0; i < cvector_size(loaded_sounds); ++i) {
-    if (loaded_sounds[i] != NULL) {
-      UpdateMusicStream(*loaded_sounds[i]);
-    }
+    UpdateMusicStream(loaded_sounds[i]);
   }
   return fenster_loop(window) == 0;
 }
@@ -207,7 +202,7 @@ pntr_sound pntr_sound_load(char* filename) {
     // I prefer magic-bytes to extension, but raudio already works this way
     // see https://github.com/RobLoach/pntr/issues/191
     pntr_sound sound = LoadMusicStreamFromMemory(GetFileExtension(filename), fileData, dataSize);
-    cvector_push_back(loaded_sounds, &sound);
+    cvector_push_back(loaded_sounds, sound);
     sound.looping = false;
     return sound;
   } else {
@@ -220,7 +215,7 @@ pntr_sound pntr_sound_load(char* filename) {
 // unload a sound
 void pntr_sound_unload(pntr_sound sound) {
   for (int i = 0; i < cvector_size(loaded_sounds); ++i) {
-    if (loaded_sounds[i] == &sound) {
+    if (&loaded_sounds[i] == &sound) {
       cvector_erase(loaded_sounds, i);
       break;
     }

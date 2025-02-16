@@ -22,7 +22,13 @@
 
 #include "external/cvector.h"
 #include "pntr.h"
+
+#ifdef EMSCRIPTEN
+#include "fenster-emscripten.h"
+#else
 #include "external/fenster.h"
+#endif
+
 #include "raudio.c"
 
 // a "window" is a fenster instance

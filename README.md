@@ -12,6 +12,8 @@ I also include [cvector](https://github.com/eteran/c-vector), because it's so us
 
 ## build
 
+> *TODO*: I have not set this up yet. For now, just use the Makefile.
+
 You can include it in your app a few ways, but easiest is probably cmake:
 
 ```cmake

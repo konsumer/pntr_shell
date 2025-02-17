@@ -1,4 +1,4 @@
-The idea here is that you want to use [pntr](https://github.com/robloach/pntr) to make a cross-platform game, but don't want to bother too much with build settings & dependencies and such. It should work on Mac, Windows, Linux, BSDs and Emscripten, with no external dependencies.
+The idea here is that you want to use [pntr](https://github.com/robloach/pntr) to make a cross-platform game, but don't want to bother too much with build settings & dependencies and such. It should work on Mac, Windows, Linux, BSDs and Emscripten, with no external dependencies or config.
 
 This is a very light system for drawing things on the screen, receiving input, and making sound (both streaming and 1-shot.) It should work on every major platform, and not really require you to structure your app any particular way.
 

@@ -248,6 +248,7 @@ void pntr_sound_stop(pntr_sound sound) {
 // Start sound playing
 void pntr_sound_play(pntr_sound sound){
   StopMusicStream(sound);
+  SeekMusicStream(sound, 0);
   PlayMusicStream(sound);
 }
 

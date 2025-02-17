@@ -40,7 +40,7 @@ int main() {
     pntr_draw_circle_fill(screen, 100, 100, 80, PNTR_RED);
     pntr_draw_text(screen, font, "Press space to wub", 30, 100, PNTR_WHITE);
 
-    if (window->keys[PNTR_APP_KEY_SPACE]) {
+    if (window->keys[PNTR_APP_KEY_SPACE] || window->gamepads[0].buttons[GAMEPAD_BUTTON_A]) {
       pntr_sound_play(wub);
     }
   }

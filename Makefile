@@ -16,7 +16,7 @@ else
 		LDFLAGS = -lm -sASYNCIFY=1
 		TARGET_EXT = .html
 	else ifeq ($(UNAME_S),Darwin)
-		LDFLAGS = -framework Cocoa -framework AudioToolbox
+		LDFLAGS = -framework Cocoa -framework AudioToolbox -framework IOKit
 	else
 		LDFLAGS = -lX11 -lasound -lm
 		TARGET_EXT =

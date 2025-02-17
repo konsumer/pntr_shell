@@ -86,8 +86,10 @@ typedef struct {
             }
         }
     }
+#endif // windows
 
-#elif defined(__linux__)
+
+#if defined(__linux__)
     #include <linux/input.h>
     #include <fcntl.h>
     #include <unistd.h>
@@ -215,7 +217,7 @@ typedef struct {
             }
         }
     }
-#endif
+#endif // linux
 
 #ifdef __cplusplus
 }

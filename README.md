@@ -6,7 +6,7 @@ If you want to target multiple backends and share more state at the app-layer, d
 
 If you need to do something more advanced with audio, the entire [raudio](https://github.com/raysan5/raudio) API is available.
 
-I also include [cvector](https://github.com/eteran/c-vector), because it's so useful.
+I also include [cvector](https://github.com/eteran/c-vector), because it's so useful, and I track loaded audio-files with it.
 
 ## usage
 

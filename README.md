@@ -40,7 +40,7 @@ You can compile your project like this:
 
 ```
 cmake -B build -G Ninja
-cmnake --build build
+cmake --build build
 ```
 
 ### make
@@ -58,8 +58,17 @@ make
 # make the emscripten app
 emmake make
 
-# make the app as libretro-core
+# make the app as libretro-core for mac
 make example_libretro.dylib
+
+# make the app as libretro-core for linux
+make example_libretro.so
+
+# make the app as libretro-core for windows
+make example_libretro.dll
+
+# make the app as libretro-core for emscripten
+emmake make example_libretro.wasm
 ```
 
 ### code

@@ -7,3 +7,6 @@ example.html
 example.js
 example.*.js
 *.data
+*.dylib
+*.so
+*.dll

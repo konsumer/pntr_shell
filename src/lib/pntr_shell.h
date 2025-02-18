@@ -23,17 +23,19 @@
 #include "external/cvector.h"
 #include "pntr.h"
 
+#ifdef BUILD_LIBRETRO
+#include "libretro.h"
+#include "external/raudio-libretro.h"
+#else
+#include "raudio.c"
+#endif
+
 #ifdef EMSCRIPTEN
 #include "external/fenster-emscripten.h"
 #else
 #include "external/fenster.h"
 #endif
 
-#include "raudio.c"
-
-#ifdef BUILD_LIBRETRO
-#include "external/raudio-libretro.h"
-#endif
 
 // a "window" is a fenster instance
 typedef struct fenster pntr_window;

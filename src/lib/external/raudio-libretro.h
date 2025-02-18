@@ -1,8 +1,27 @@
 // this implements a miniaudio backend for libretro, and adds InitLibretroAudioDevice to raudio
 
+#ifndef AUDIO_DEVICE_FORMAT
+    #define AUDIO_DEVICE_FORMAT    ma_format_s16    // Device output format (float-32bit)
+#endif
+#ifndef AUDIO_DEVICE_CHANNELS
+    #define AUDIO_DEVICE_CHANNELS              2    // Device output channels: stereo
+#endif
+#ifndef AUDIO_DEVICE_SAMPLE_RATE
+    #define AUDIO_DEVICE_SAMPLE_RATE           0    // Device output sample rate
+#endif
+
+#ifndef MAX_AUDIO_BUFFER_POOL_CHANNELS
+    #define MAX_AUDIO_BUFFER_POOL_CHANNELS    16    // Audio pool channels
+#endif
+
+#include "raudio.c"
+
 void InitLibretroAudioDevice();
 
-//////////////////////////// below here is miniaudio implementation
+// this gets called by libretro to get current audio
+size_t pntr_shell_libretro_audio_batch(const int16_t *data, size_t frames) {
+    return 0;
+}
 
 // see https://miniaud.io/docs/examples/custom_backend.html for exmaple
 
@@ -33,7 +52,7 @@ static ma_result ma_context_uninit__libretro(ma_context* pContext) {
     ma_context_ex* pContextEx = (ma_context_ex*)pContext;
     MA_ASSERT(pContext != NULL);
 
-    // TODO: close audio system
+    // libretro doesn't need to close audio
 
     return MA_SUCCESS;
 }
@@ -73,7 +92,7 @@ static ma_result ma_device_init_internal__libretro(ma_device_ex* pDeviceEx, cons
 
      // TODO: fill in pDescriptor
     if (pDescriptor->sampleRate == 0) {
-        pDescriptor->sampleRate = MA_DEFAULT_SAMPLE_RATE;
+        pDescriptor->sampleRate = AUDIO_DEVICE_SAMPLE_RATE;
     }
     // this is max, but it should be calculated from pDescriptor->sampleRate & pConfig->performanceProfile
     pDescriptor->periodSizeInFrames = 32768;
@@ -220,8 +239,72 @@ static ma_result ma_context_init__libretro_loader(ma_context* pContext, const ma
    return result;
 }
 
-
+// THis is just like InitAudioDevice, but uses a custom device for pushing audio to backend
 void InitLibretroAudioDevice(){
-    // TODO: call retro_set_audio_sample_batch to setup callback
-    // TODO: init similar to InitAudioDevice but with custom miniaudio device
+    // Init audio context
+    ma_context_config ctxConfig = ma_context_config_init();
+    ma_log_callback_init(OnLog, NULL);
+
+    ma_backend backends[] = {
+        ma_backend_custom
+    };
+
+    ma_result result = ma_context_init(backends, sizeof(backends)/sizeof(backends[0]), &ctxConfig, &AUDIO.System.context);
+    if (result != MA_SUCCESS)
+    {
+        TRACELOG(LOG_WARNING, "AUDIO: Failed to initialize context");
+        return;
+    }
+
+    // Init audio device
+    // NOTE: Using the default device. Format is floating point because it simplifies mixing.
+    ma_device_config config = ma_device_config_init(ma_device_type_playback);
+    config.playback.pDeviceID = NULL;  // NULL for the default playback AUDIO.System.device.
+    config.playback.format = AUDIO_DEVICE_FORMAT;
+    config.playback.channels = AUDIO_DEVICE_CHANNELS;
+    config.capture.pDeviceID = NULL;  // NULL for the default capture AUDIO.System.device.
+    config.capture.format = ma_format_s16;
+    config.capture.channels = 1;
+    config.sampleRate = AUDIO_DEVICE_SAMPLE_RATE;
+    config.dataCallback = OnSendAudioDataToDevice;
+    config.pUserData = NULL;
+
+    result = ma_device_init(&AUDIO.System.context, &config, &AUDIO.System.device);
+    if (result != MA_SUCCESS)
+    {
+        TRACELOG(LOG_WARNING, "AUDIO: Failed to initialize playback device");
+        ma_context_uninit(&AUDIO.System.context);
+        return;
+    }
+
+    // Mixing happens on a separate thread which means we need to synchronize. I'm using a mutex here to make things simple, but may
+    // want to look at something a bit smarter later on to keep everything real-time, if that's necessary.
+    if (ma_mutex_init(&AUDIO.System.lock) != MA_SUCCESS)
+    {
+        TRACELOG(LOG_WARNING, "AUDIO: Failed to create mutex for mixing");
+        ma_device_uninit(&AUDIO.System.device);
+        ma_context_uninit(&AUDIO.System.context);
+        return;
+    }
+
+    // Keep the device running the whole time. May want to consider doing something a bit smarter and only have the device running
+    // while there's at least one sound being played.
+    result = ma_device_start(&AUDIO.System.device);
+    if (result != MA_SUCCESS)
+    {
+        TRACELOG(LOG_WARNING, "AUDIO: Failed to start playback device");
+        ma_device_uninit(&AUDIO.System.device);
+        ma_context_uninit(&AUDIO.System.context);
+        return;
+    }
+
+    TRACELOG(LOG_INFO, "AUDIO: Device initialized successfully");
+    TRACELOG(LOG_INFO, "    > Backend:       miniaudio / %s", ma_get_backend_name(AUDIO.System.context.backend));
+    TRACELOG(LOG_INFO, "    > Format:        %s -> %s", ma_get_format_name(AUDIO.System.device.playback.format), ma_get_format_name(AUDIO.System.device.playback.internalFormat));
+    TRACELOG(LOG_INFO, "    > Channels:      %d -> %d", AUDIO.System.device.playback.channels, AUDIO.System.device.playback.internalChannels);
+    TRACELOG(LOG_INFO, "    > Sample rate:   %d -> %d", AUDIO.System.device.sampleRate, AUDIO.System.device.playback.internalSampleRate);
+    TRACELOG(LOG_INFO, "    > Periods size:  %d", AUDIO.System.device.playback.internalPeriodSizeInFrames*AUDIO.System.device.playback.internalPeriods);
+
+    AUDIO.System.isReady = true;
+    retro_set_audio_sample_batch(pntr_shell_libretro_audio_batch);
 }

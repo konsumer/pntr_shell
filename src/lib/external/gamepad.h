@@ -47,8 +47,66 @@ int gamepad_init(void);
 void gamepad_update(Gamepad pads[GAMEPAD_MAX]);
 void gamepad_shutdown(void);
 
+#if defined(BUILD_LIBRETRO)
 
-#ifdef __APPLE__
+#include <libretro.h>
+
+static struct retro_input_state_callback input_state_cb;
+static int16_t libretro_input_state(unsigned port, unsigned device, unsigned index, unsigned id);
+
+int gamepad_init(void) {
+    // LibRetro cores don't need explicit initialization
+    return 1;
+}
+
+void gamepad_update(Gamepad pads[GAMEPAD_MAX]) {
+    for (int i = 0; i < GAMEPAD_MAX; i++) {
+        // Clear the gamepad state
+        memset(&pads[i], 0, sizeof(Gamepad));
+
+        // Check if controller is connected (any button pressed)
+        int16_t any_input = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MASK);
+        pads[i].connected = (any_input != 0);
+
+        if (pads[i].connected) {
+            // Buttons
+            pads[i].buttons[GAMEPAD_BUTTON_A] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A);
+            pads[i].buttons[GAMEPAD_BUTTON_B] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B);
+            pads[i].buttons[GAMEPAD_BUTTON_X] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X);
+            pads[i].buttons[GAMEPAD_BUTTON_Y] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y);
+            pads[i].buttons[GAMEPAD_BUTTON_UP] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP);
+            pads[i].buttons[GAMEPAD_BUTTON_DOWN] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN);
+            pads[i].buttons[GAMEPAD_BUTTON_LEFT] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT);
+            pads[i].buttons[GAMEPAD_BUTTON_RIGHT] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT);
+            pads[i].buttons[GAMEPAD_BUTTON_START] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START);
+            pads[i].buttons[GAMEPAD_BUTTON_BACK] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT);
+            pads[i].buttons[GAMEPAD_BUTTON_LEFT_SHOULDER] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L);
+            pads[i].buttons[GAMEPAD_BUTTON_RIGHT_SHOULDER] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R);
+
+            // Analog sticks (normalize from -32768 to 32767 to -1 to 1)
+            int16_t lx = input_state_cb(i, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
+            int16_t ly = input_state_cb(i, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y);
+            int16_t rx = input_state_cb(i, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X);
+            int16_t ry = input_state_cb(i, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y);
+
+            pads[i].axis_left_x = lx / 32768.0f;
+            pads[i].axis_left_y = ly / 32768.0f;
+            pads[i].axis_right_x = rx / 32768.0f;
+            pads[i].axis_right_y = ry / 32768.0f;
+
+            // Triggers (L2/R2)
+            pads[i].trigger_left = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2) / 32768.0f;
+            pads[i].trigger_right = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2) / 32768.0f;
+        }
+    }
+}
+
+void gamepad_shutdown(void) {
+    // Nothing needed for libretro shutdown
+}
+
+#elif defined(__APPLE__)
+
 #include <CoreFoundation/CoreFoundation.h>
 #include <IOKit/IOKitLib.h>
 #include <IOKit/hid/IOHIDLib.h>
@@ -219,12 +277,10 @@ void gamepad_shutdown(void) {
         hid_manager = NULL;
     }
 }
-#endif // apple
 
+#elif defined(__linux__)
 
-
-#if defined(__linux__)
-    #include <linux/input.h>
+#include <linux/input.h>
     #include <fcntl.h>
     #include <unistd.h>
     #include <string.h>
@@ -351,12 +407,9 @@ void gamepad_shutdown(void) {
             }
         }
     }
-#endif // linux
 
+#elif defined(_WIN32)
 
-
-
-#ifdef _WIN32
 #include <windows.h>
 #include <xinput.h>
 #pragma comment(lib, "xinput.lib")
@@ -412,71 +465,9 @@ void gamepad_update(Gamepad pads[GAMEPAD_MAX]) {
 void gamepad_shutdown(void) {
     // Nothing needed for XInput shutdown
 }
-#endif // windows
 
+#elif defined(EMSCRIPTEN)
 
-
-#ifdef BUILD_LIBRETRO
-#include <libretro.h>
-
-static struct retro_input_state_callback input_state_cb;
-static int16_t libretro_input_state(unsigned port, unsigned device, unsigned index, unsigned id);
-
-int gamepad_init(void) {
-    // LibRetro cores don't need explicit initialization
-    return 1;
-}
-
-void gamepad_update(Gamepad pads[GAMEPAD_MAX]) {
-    for (int i = 0; i < GAMEPAD_MAX; i++) {
-        // Clear the gamepad state
-        memset(&pads[i], 0, sizeof(Gamepad));
-
-        // Check if controller is connected (any button pressed)
-        int16_t any_input = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MASK);
-        pads[i].connected = (any_input != 0);
-
-        if (pads[i].connected) {
-            // Buttons
-            pads[i].buttons[GAMEPAD_BUTTON_A] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A);
-            pads[i].buttons[GAMEPAD_BUTTON_B] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B);
-            pads[i].buttons[GAMEPAD_BUTTON_X] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X);
-            pads[i].buttons[GAMEPAD_BUTTON_Y] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y);
-            pads[i].buttons[GAMEPAD_BUTTON_UP] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP);
-            pads[i].buttons[GAMEPAD_BUTTON_DOWN] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN);
-            pads[i].buttons[GAMEPAD_BUTTON_LEFT] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT);
-            pads[i].buttons[GAMEPAD_BUTTON_RIGHT] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT);
-            pads[i].buttons[GAMEPAD_BUTTON_START] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START);
-            pads[i].buttons[GAMEPAD_BUTTON_BACK] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT);
-            pads[i].buttons[GAMEPAD_BUTTON_LEFT_SHOULDER] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L);
-            pads[i].buttons[GAMEPAD_BUTTON_RIGHT_SHOULDER] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R);
-
-            // Analog sticks (normalize from -32768 to 32767 to -1 to 1)
-            int16_t lx = input_state_cb(i, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
-            int16_t ly = input_state_cb(i, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y);
-            int16_t rx = input_state_cb(i, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X);
-            int16_t ry = input_state_cb(i, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y);
-
-            pads[i].axis_left_x = lx / 32768.0f;
-            pads[i].axis_left_y = ly / 32768.0f;
-            pads[i].axis_right_x = rx / 32768.0f;
-            pads[i].axis_right_y = ry / 32768.0f;
-
-            // Triggers (L2/R2)
-            pads[i].trigger_left = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2) / 32768.0f;
-            pads[i].trigger_right = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2) / 32768.0f;
-        }
-    }
-}
-
-void gamepad_shutdown(void) {
-    // Nothing needed for libretro shutdown
-}
-#endif // BUILD_LIBRETRO
-
-
-
-#ifdef EMSCRIPTEN
 #include <emscripten.h>
 #include <emscripten/html5.h>
 

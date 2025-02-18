@@ -3,6 +3,8 @@ Cross platform gamepad library
 
 will auto-detect windows/mac/linux/emscripten, define BUILD_LIBRETRO for libretro-core
 
+TODO: test on emscripen, libretro, and windows
+
 Created by David Konsumer
 */
 

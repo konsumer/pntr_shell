@@ -1,6 +1,6 @@
 // you can custmize these defines, if you want, but I just want to enable everything possible, by default
 
-#define PNTR_PIXELFORMAT_RGBA
+#define PNTR_PIXELFORMAT_ARGB
 #define PNTR_ENABLE_DEFAULT_FONT
 #define PNTR_ENABLE_TTF
 #define PNTR_ENABLE_UTF8

@@ -44,7 +44,6 @@ int main() {
     gamepad_update(gamepads);
 
     pntr_clear_background(screen, PNTR_BLACK);
-    // this is blue on mac....
     pntr_draw_circle_fill(screen, 100, 100, 80, PNTR_RED);
     pntr_draw_text(screen, font, "Press space to wub", 30, 100, PNTR_WHITE);
 

@@ -31,7 +31,7 @@ int main() {
   pntr_image *screen = pntr_new_image(200, 200);
   pntr_window *window = pntr_shell_init(screen, "my game");
 
-  pntr_sound wub = pntr_sound_load("assets/example.mp3");
+  pntr_sound wub = pntr_sound_load("assets/wub.mp3");
   pntr_sound_play(wub);
 
   pntr_sound_register(&bytebeat);

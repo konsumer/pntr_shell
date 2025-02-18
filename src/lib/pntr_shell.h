@@ -20,19 +20,19 @@
 // this disables raudio logging
 #define TRACELOG(level, ...)
 
-#include "cvector.h"
+#include "external/cvector.h"
 #include "pntr.h"
 
 #ifdef EMSCRIPTEN
-#include "fenster-emscripten.h"
+#include "external/fenster-emscripten.h"
 #else
-#include "fenster.h"
+#include "external/fenster.h"
 #endif
 
 #include "raudio.c"
 
 #ifdef BUILD_LIBRETRO
-#include "raudio-libretro.h"
+#include "external/raudio-libretro.h"
 #endif
 
 // a "window" is a fenster instance

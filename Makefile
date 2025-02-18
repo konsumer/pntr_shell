@@ -2,10 +2,10 @@
 
 .PHONY: clean
 
-CFLAGS ?= -std=gnu99
+CFLAGS ?= -std=gnu99 -I src/lib -I src/lib/external
 
 # debug
-CFLAGS += -g
+# CFLAGS += -g
 
 ifeq ($(OS),Windows_NT)
 	LDFLAGS = -lgdi32
@@ -14,7 +14,7 @@ ifeq ($(OS),Windows_NT)
 else
 	UNAME_S := $(shell uname -s)
 	ifneq (,$(findstring emcc,$(CC)))
-		LDFLAGS = -lm -DMA_ENABLE_AUDIO_WORKLETS -sASYNCIFY=1 -sAUDIO_WORKLET=1 -sWASM_WORKERS=1
+		LDFLAGS = -lm -DMA_ENABLE_AUDIO_WORKLETS -sAUDIO_WORKLET=1 -sWASM_WORKERS=1 -sASYNCIFY -DPLATFORM_WEB
 		TARGET_EXT = .html
 		RETRO_EXT = .wasm
 	else ifeq ($(UNAME_S),Darwin)
@@ -31,7 +31,7 @@ endif
 example$(TARGET_EXT): src/example.c
 	$(CC) $? $(CFLAGS) $(LDFLAGS) -o $@
 
-example$(RETRO_EXT): src/example.c
+example_libretro$(RETRO_EXT): src/example.c
 	$(CC) $? $(CFLAGS) $(LDFLAGS) -DBUILD_LIBRETRO -o $@
 
 clean:

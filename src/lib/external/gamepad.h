@@ -1,3 +1,11 @@
+/*
+Cross platform gamepad library
+
+will auto-detect windows/mac/linux/emscripten, define BUILD_LIBRETRO for libretro-core
+
+Created by David Konsumer
+*/
+
 #ifndef GAMEPAD_H
 #define GAMEPAD_H
 
@@ -212,6 +220,7 @@ void gamepad_shutdown(void) {
 #endif // apple
 
 
+
 #if defined(__linux__)
     #include <linux/input.h>
     #include <fcntl.h>
@@ -342,6 +351,9 @@ void gamepad_shutdown(void) {
     }
 #endif // linux
 
+
+
+
 #ifdef _WIN32
 #include <windows.h>
 #include <xinput.h>
@@ -399,5 +411,169 @@ void gamepad_shutdown(void) {
     // Nothing needed for XInput shutdown
 }
 #endif // windows
+
+
+
+#ifdef BUILD_LIBRETRO
+#include <libretro.h>
+
+static struct retro_input_state_callback input_state_cb;
+static int16_t libretro_input_state(unsigned port, unsigned device, unsigned index, unsigned id);
+
+int gamepad_init(void) {
+    // LibRetro cores don't need explicit initialization
+    return 1;
+}
+
+void gamepad_update(Gamepad pads[GAMEPAD_MAX]) {
+    for (int i = 0; i < GAMEPAD_MAX; i++) {
+        // Clear the gamepad state
+        memset(&pads[i], 0, sizeof(Gamepad));
+
+        // Check if controller is connected (any button pressed)
+        int16_t any_input = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MASK);
+        pads[i].connected = (any_input != 0);
+
+        if (pads[i].connected) {
+            // Buttons
+            pads[i].buttons[GAMEPAD_BUTTON_A] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A);
+            pads[i].buttons[GAMEPAD_BUTTON_B] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B);
+            pads[i].buttons[GAMEPAD_BUTTON_X] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X);
+            pads[i].buttons[GAMEPAD_BUTTON_Y] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y);
+            pads[i].buttons[GAMEPAD_BUTTON_UP] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP);
+            pads[i].buttons[GAMEPAD_BUTTON_DOWN] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN);
+            pads[i].buttons[GAMEPAD_BUTTON_LEFT] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT);
+            pads[i].buttons[GAMEPAD_BUTTON_RIGHT] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT);
+            pads[i].buttons[GAMEPAD_BUTTON_START] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START);
+            pads[i].buttons[GAMEPAD_BUTTON_BACK] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT);
+            pads[i].buttons[GAMEPAD_BUTTON_LEFT_SHOULDER] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L);
+            pads[i].buttons[GAMEPAD_BUTTON_RIGHT_SHOULDER] = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R);
+
+            // Analog sticks (normalize from -32768 to 32767 to -1 to 1)
+            int16_t lx = input_state_cb(i, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
+            int16_t ly = input_state_cb(i, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y);
+            int16_t rx = input_state_cb(i, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X);
+            int16_t ry = input_state_cb(i, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y);
+
+            pads[i].axis_left_x = lx / 32768.0f;
+            pads[i].axis_left_y = ly / 32768.0f;
+            pads[i].axis_right_x = rx / 32768.0f;
+            pads[i].axis_right_y = ry / 32768.0f;
+
+            // Triggers (L2/R2)
+            pads[i].trigger_left = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2) / 32768.0f;
+            pads[i].trigger_right = input_state_cb(i, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2) / 32768.0f;
+        }
+    }
+}
+
+void gamepad_shutdown(void) {
+    // Nothing needed for libretro shutdown
+}
+#endif // BUILD_LIBRETRO
+
+
+
+#ifdef EMSCRIPTEN
+#include <emscripten.h>
+#include <emscripten/html5.h>
+
+static const char* gamepadId[GAMEPAD_MAX] = {NULL};
+static int numGamepads = 0;
+
+EM_BOOL gamepad_callback(int eventType, const EmscriptenGamepadEvent *gamepadEvent, void *userData) {
+    if (eventType == EMSCRIPTEN_EVENT_GAMEPADCONNECTED) {
+        if (numGamepads < GAMEPAD_MAX) {
+            gamepadId[numGamepads++] = strdup(gamepadEvent->id);
+            printf("Gamepad connected: %s\n", gamepadEvent->id);
+        }
+    }
+    else if (eventType == EMSCRIPTEN_EVENT_GAMEPADDISCONNECTED) {
+        for (int i = 0; i < numGamepads; i++) {
+            if (gamepadId[i] && strcmp(gamepadId[i], gamepadEvent->id) == 0) {
+                free((void*)gamepadId[i]);
+                gamepadId[i] = NULL;
+
+                // Shift remaining gamepads
+                for (int j = i; j < numGamepads - 1; j++) {
+                    gamepadId[j] = gamepadId[j + 1];
+                }
+                numGamepads--;
+                break;
+            }
+        }
+        printf("Gamepad disconnected: %s\n", gamepadEvent->id);
+    }
+    return EM_TRUE;
+}
+
+int gamepad_init(void) {
+    numGamepads = 0;
+    memset(gamepadId, 0, sizeof(gamepadId));
+
+    EMSCRIPTEN_RESULT result;
+    result = emscripten_set_gamepadconnected_callback(NULL, EM_TRUE, gamepad_callback);
+    if (result != EMSCRIPTEN_RESULT_SUCCESS) return 0;
+
+    result = emscripten_set_gamepaddisconnected_callback(NULL, EM_TRUE, gamepad_callback);
+    if (result != EMSCRIPTEN_RESULT_SUCCESS) return 0;
+
+    return 1;
+}
+
+void gamepad_update(Gamepad pads[GAMEPAD_MAX]) {
+    EmscriptenGamepadEvent gamepadState;
+
+    for (int i = 0; i < GAMEPAD_MAX; i++) {
+        memset(&pads[i], 0, sizeof(Gamepad));
+
+        if (i < numGamepads && gamepadId[i] != NULL) {
+            if (emscripten_get_gamepad_status(i, &gamepadState) == EMSCRIPTEN_RESULT_SUCCESS) {
+                pads[i].connected = 1;
+
+                // Standard mapping buttons
+                pads[i].buttons[GAMEPAD_BUTTON_A] = gamepadState.digitalButton[0];
+                pads[i].buttons[GAMEPAD_BUTTON_B] = gamepadState.digitalButton[1];
+                pads[i].buttons[GAMEPAD_BUTTON_X] = gamepadState.digitalButton[2];
+                pads[i].buttons[GAMEPAD_BUTTON_Y] = gamepadState.digitalButton[3];
+                pads[i].buttons[GAMEPAD_BUTTON_LEFT_SHOULDER] = gamepadState.digitalButton[4];
+                pads[i].buttons[GAMEPAD_BUTTON_RIGHT_SHOULDER] = gamepadState.digitalButton[5];
+                pads[i].buttons[GAMEPAD_BUTTON_BACK] = gamepadState.digitalButton[8];
+                pads[i].buttons[GAMEPAD_BUTTON_START] = gamepadState.digitalButton[9];
+                pads[i].buttons[GAMEPAD_BUTTON_LEFT_THUMB] = gamepadState.digitalButton[10];
+                pads[i].buttons[GAMEPAD_BUTTON_RIGHT_THUMB] = gamepadState.digitalButton[11];
+                pads[i].buttons[GAMEPAD_BUTTON_UP] = gamepadState.digitalButton[12];
+                pads[i].buttons[GAMEPAD_BUTTON_DOWN] = gamepadState.digitalButton[13];
+                pads[i].buttons[GAMEPAD_BUTTON_LEFT] = gamepadState.digitalButton[14];
+                pads[i].buttons[GAMEPAD_BUTTON_RIGHT] = gamepadState.digitalButton[15];
+
+                // Axes
+                pads[i].axis_left_x = gamepadState.axis[0];
+                pads[i].axis_left_y = gamepadState.axis[1];
+                pads[i].axis_right_x = gamepadState.axis[2];
+                pads[i].axis_right_y = gamepadState.axis[3];
+
+                // Triggers (axes 6 and 7 in standard mapping)
+                pads[i].trigger_left = gamepadState.analogButton[6];
+                pads[i].trigger_right = gamepadState.analogButton[7];
+            }
+        }
+    }
+}
+
+void gamepad_shutdown(void) {
+    emscripten_set_gamepadconnected_callback(NULL, EM_FALSE, NULL);
+    emscripten_set_gamepaddisconnected_callback(NULL, EM_FALSE, NULL);
+
+    for (int i = 0; i < GAMEPAD_MAX; i++) {
+        if (gamepadId[i]) {
+            free((void*)gamepadId[i]);
+            gamepadId[i] = NULL;
+        }
+    }
+    numGamepads = 0;
+}
+#endif // EMSCRIPTEN
+
 
 #endif // GAMEPAD_H

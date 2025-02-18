@@ -1,4 +1,7 @@
-#include "lib/pntr_shell.h"
+#include "pntr_shell.h"
+#include "gamepad.h"
+
+Gamepad gamepads[GAMEPAD_MAX];
 
 static int u = 0;
 
@@ -35,16 +38,22 @@ int main() {
 
   pntr_font* font = pntr_load_font_default();
 
+  gamepad_init();
+
   while (pntr_keep_going(window) && !exit) {
+    gamepad_update(gamepads);
+
     pntr_clear_background(screen, PNTR_BLACK);
+    // this is blue on mac....
     pntr_draw_circle_fill(screen, 100, 100, 80, PNTR_RED);
     pntr_draw_text(screen, font, "Press space to wub", 30, 100, PNTR_WHITE);
 
-    if (window->keys[PNTR_APP_KEY_SPACE] || window->gamepads[0].buttons[PNTR_APP_BUTTON_A]) {
+    if (window->keys[PNTR_APP_KEY_SPACE] || gamepads[0].buttons[PNTR_APP_BUTTON_A]) {
       pntr_sound_play(wub);
     }
   }
 
+  gamepad_shutdown();
   pntr_unload_image(screen);
   pntr_shell_unload(window);
   pntr_sound_unregister(&bytebeat);

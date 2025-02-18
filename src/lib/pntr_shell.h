@@ -20,19 +20,19 @@
 // this disables raudio logging
 #define TRACELOG(level, ...)
 
-#include "external/cvector.h"
+#include "cvector.h"
 #include "pntr.h"
 
 #ifdef EMSCRIPTEN
 #include "fenster-emscripten.h"
 #else
-#include "external/fenster.h"
+#include "fenster.h"
 #endif
 
-#ifdef BUILD_LIBRETRO
-#include "raudio-light-fenster.h"
-#else
 #include "raudio.c"
+
+#ifdef BUILD_LIBRETRO
+#include "raudio-raudio.h"
 #endif
 
 // a "window" is a fenster instance
@@ -188,6 +188,7 @@ typedef enum pntr_app_key {
 #define PNTR_APP_BUTTON_COUNT GAMEPAD_BUTTON_COUNT
 
 
+// these should probly be in an app-struct
 static cvector_vector_type(pntr_sound) loaded_sounds = NULL;
 
 // initialize the window & audio-system
@@ -201,14 +202,26 @@ pntr_window* pntr_shell_init(pntr_image* screen, char* title) {
     };
     memcpy(window, &temp, sizeof(pntr_window));
     fenster_open(window);
-    InitAudioDevice();
+
+    #ifdef BUILD_LIBRETRO
+      InitLibretroAudioDevice();
+    #else
+      InitAudioDevice();
+    #endif
+
     return window;
 }
 
 // unload window & audio-system
 void pntr_shell_unload(pntr_window* window) {
   fenster_close(window);
-  CloseAudioDevice();
+
+  #ifdef BUILD_LIBRETRO
+    CloseLibretroAudioDevice();
+  #else
+    CloseAudioDevice();
+  #endif
+
   for (int i = 0; i < cvector_size(loaded_sounds); ++i) {
     UnloadMusicStream(loaded_sounds[i]);
   }

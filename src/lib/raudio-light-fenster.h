@@ -1,24 +1,23 @@
 // this implements the bare-min raudio implemtenation, for pntr_shell, over fenster-audio
 
-#if defined(RAUDIO_STANDALONE)
-    #ifndef TRACELOG
-        #define TRACELOG(level, ...)    printf(__VA_ARGS__)
-    #endif
-
-    // Allow custom memory allocators
-    #ifndef RL_MALLOC
-        #define RL_MALLOC(sz)           malloc(sz)
-    #endif
-    #ifndef RL_CALLOC
-        #define RL_CALLOC(n,sz)         calloc(n,sz)
-    #endif
-    #ifndef RL_REALLOC
-        #define RL_REALLOC(ptr,sz)      realloc(ptr,sz)
-    #endif
-    #ifndef RL_FREE
-        #define RL_FREE(ptr)            free(ptr)
-    #endif
+#ifndef TRACELOG
+    #define TRACELOG(level, ...)    printf(__VA_ARGS__)
 #endif
+
+// Allow custom memory allocators
+#ifndef RL_MALLOC
+    #define RL_MALLOC(sz)           malloc(sz)
+#endif
+#ifndef RL_CALLOC
+    #define RL_CALLOC(n,sz)         calloc(n,sz)
+#endif
+#ifndef RL_REALLOC
+    #define RL_REALLOC(ptr,sz)      realloc(ptr,sz)
+#endif
+#ifndef RL_FREE
+    #define RL_FREE(ptr)            free(ptr)
+#endif
+
 
 #if defined(SUPPORT_FILEFORMAT_WAV)
     #define DRWAV_MALLOC RL_MALLOC

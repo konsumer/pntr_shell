@@ -35,4 +35,4 @@ example_libretro$(RETRO_EXT): src/example.c
 	$(CC) $? $(CFLAGS) $(LDFLAGS) -DBUILD_LIBRETRO -o $@
 
 clean:
-	rm -f example example.exe *.html *.js *.wasm
+	rm -f example example.exe *.html *.js *.wasm *.data

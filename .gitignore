@@ -1,6 +1,9 @@
 .DS_Store
 example
+example.exe
 *.dSYM
 example.html
-example.wasm
+*.wasm
 example.js
+example.*.js
+*.data

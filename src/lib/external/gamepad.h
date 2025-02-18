@@ -1,10 +1,6 @@
 #ifndef GAMEPAD_H
 #define GAMEPAD_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define GAMEPAD_MAX 4
 
 typedef enum {
@@ -37,56 +33,183 @@ typedef struct {
     char connected;
 } Gamepad;
 
-#if defined(_WIN32)
-    #include <windows.h>
-    #include <xinput.h>
-    #pragma comment(lib, "xinput.lib")
+int gamepad_init(void);
+void gamepad_update(Gamepad pads[GAMEPAD_MAX]);
+void gamepad_shutdown(void);
 
-    int gamepad_init(void) {
-        return 1;
-    }
 
-    void gamepad_update(Gamepad pads[GAMEPAD_MAX]) {
-        for (int i = 0; i < GAMEPAD_MAX; i++) {
-            XINPUT_STATE state;
-            ZeroMemory(&state, sizeof(XINPUT_STATE));
+#ifdef __APPLE__
+#include <CoreFoundation/CoreFoundation.h>
+#include <IOKit/IOKitLib.h>
+#include <IOKit/hid/IOHIDLib.h>
+#include <IOKit/hid/IOHIDManager.h>
+#include <IOKit/hid/IOHIDKeys.h>
+#include <IOKit/hid/IOHIDValue.h>
+#include <IOKit/hid/IOHIDElement.h>
+#include <IOKit/hid/IOHIDDevice.h>
 
-            if (XInputGetState(i, &state) == ERROR_SUCCESS) {
-                pads[i].connected = 1;
+typedef struct {
+    IOHIDDeviceRef device;
+    uint8_t buttons[GAMEPAD_BUTTON_COUNT];
+    float axes[6];  // left_x, left_y, right_x, right_y, trigger_l, trigger_r
+} GamepadDevice;
 
-                // Sticks
-                pads[i].axis_left_x = state.Gamepad.sThumbLX / 32768.0f;
-                pads[i].axis_left_y = state.Gamepad.sThumbLY / 32768.0f;
-                pads[i].axis_right_x = state.Gamepad.sThumbRX / 32768.0f;
-                pads[i].axis_right_y = state.Gamepad.sThumbRY / 32768.0f;
+static IOHIDManagerRef hid_manager = NULL;
+static GamepadDevice devices[GAMEPAD_MAX];
 
-                // Triggers
-                pads[i].trigger_left = state.Gamepad.bLeftTrigger / 255.0f;
-                pads[i].trigger_right = state.Gamepad.bRightTrigger / 255.0f;
+static void handle_input_value(void* context, IOReturn result, void* sender, IOHIDValueRef value) {
+    if (result != kIOReturnSuccess) return;
 
-                // Buttons
-                pads[i].buttons[GAMEPAD_BUTTON_A] = (state.Gamepad.wButtons & XINPUT_GAMEPAD_A) != 0;
-                pads[i].buttons[GAMEPAD_BUTTON_B] = (state.Gamepad.wButtons & XINPUT_GAMEPAD_B) != 0;
-                pads[i].buttons[GAMEPAD_BUTTON_X] = (state.Gamepad.wButtons & XINPUT_GAMEPAD_X) != 0;
-                pads[i].buttons[GAMEPAD_BUTTON_Y] = (state.Gamepad.wButtons & XINPUT_GAMEPAD_Y) != 0;
-                pads[i].buttons[GAMEPAD_BUTTON_UP] = (state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP) != 0;
-                pads[i].buttons[GAMEPAD_BUTTON_DOWN] = (state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN) != 0;
-                pads[i].buttons[GAMEPAD_BUTTON_LEFT] = (state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT) != 0;
-                pads[i].buttons[GAMEPAD_BUTTON_RIGHT] = (state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) != 0;
-                pads[i].buttons[GAMEPAD_BUTTON_START] = (state.Gamepad.wButtons & XINPUT_GAMEPAD_START) != 0;
-                pads[i].buttons[GAMEPAD_BUTTON_BACK] = (state.Gamepad.wButtons & XINPUT_GAMEPAD_BACK) != 0;
-                pads[i].buttons[GAMEPAD_BUTTON_LEFT_SHOULDER] = (state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) != 0;
-                pads[i].buttons[GAMEPAD_BUTTON_RIGHT_SHOULDER] = (state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) != 0;
-                pads[i].buttons[GAMEPAD_BUTTON_LEFT_THUMB] = (state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0;
-                pads[i].buttons[GAMEPAD_BUTTON_RIGHT_THUMB] = (state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0;
-            }
-            else {
-                pads[i].connected = 0;
-                memset(&pads[i], 0, sizeof(Gamepad));
-            }
+    IOHIDElementRef element = IOHIDValueGetElement(value);
+    IOHIDDeviceRef device = IOHIDElementGetDevice(element);  // This is the correct function
+    uint32_t usage_page = IOHIDElementGetUsagePage(element);
+    uint32_t usage = IOHIDElementGetUsage(element);
+    int value_int = IOHIDValueGetIntegerValue(value);
+
+    // Find which index this device corresponds to
+    int device_index = -1;
+    for (int i = 0; i < GAMEPAD_MAX; i++) {
+        if (devices[i].device == device) {
+            device_index = i;
+            break;
         }
     }
-#endif // windows
+    if (device_index == -1) return;
+
+    if (usage_page == kHIDPage_Button) {
+        // Button inputs
+        if (usage > 0 && usage <= GAMEPAD_BUTTON_COUNT) {
+            devices[device_index].buttons[usage - 1] = value_int != 0;
+        }
+    } else if (usage_page == kHIDPage_GenericDesktop) {
+        float normalized_value;
+        switch (usage) {
+            case kHIDUsage_GD_X:
+                normalized_value = (float)(value_int - 128) / 128.0f;
+                devices[device_index].axes[0] = normalized_value;
+                break;
+            case kHIDUsage_GD_Y:
+                normalized_value = (float)(value_int - 128) / 128.0f;
+                devices[device_index].axes[1] = normalized_value;
+                break;
+            case kHIDUsage_GD_Z:
+                normalized_value = (float)(value_int - 128) / 128.0f;
+                devices[device_index].axes[2] = normalized_value;
+                break;
+            case kHIDUsage_GD_Rz:
+                normalized_value = (float)(value_int - 128) / 128.0f;
+                devices[device_index].axes[3] = normalized_value;
+                break;
+        }
+    }
+}
+
+static void handle_device_matching(void* context, IOReturn result, void* sender, IOHIDDeviceRef device) {
+    int index = -1;
+    for (int i = 0; i < GAMEPAD_MAX; i++) {
+        if (devices[i].device == NULL) {
+            index = i;
+            break;
+        }
+    }
+    if (index == -1) return;
+
+    devices[index].device = device;
+    IOHIDDeviceOpen(device, kIOHIDOptionsTypeNone);
+    IOHIDDeviceScheduleWithRunLoop(device, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
+    IOHIDDeviceRegisterInputValueCallback(device, handle_input_value, NULL);
+}
+
+static void handle_device_removal(void* context, IOReturn result, void* sender, IOHIDDeviceRef device) {
+    for (int i = 0; i < GAMEPAD_MAX; i++) {
+        if (devices[i].device == device) {
+            IOHIDDeviceClose(device, kIOHIDOptionsTypeNone);
+            devices[i].device = NULL;
+            memset(&devices[i], 0, sizeof(GamepadDevice));
+        }
+    }
+}
+
+int gamepad_init(void) {
+    memset(devices, 0, sizeof(devices));
+
+    hid_manager = IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone);
+    if (!hid_manager) return 0;
+
+    CFDictionaryRef matching_dict = NULL;
+    CFNumberRef usage_page_ref = NULL;
+    CFNumberRef usage_ref = NULL;
+
+    int usage_page = kHIDPage_GenericDesktop;
+    int usage = kHIDUsage_GD_GamePad;
+
+    usage_page_ref = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &usage_page);
+    usage_ref = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &usage);
+
+    const void* keys[] = {
+        CFSTR(kIOHIDDeviceUsagePageKey),
+        CFSTR(kIOHIDDeviceUsageKey)
+    };
+    const void* values[] = {
+        usage_page_ref,
+        usage_ref
+    };
+
+    matching_dict = CFDictionaryCreate(kCFAllocatorDefault,
+                                     keys, values, 2,
+                                     &kCFTypeDictionaryKeyCallBacks,
+                                     &kCFTypeDictionaryValueCallBacks);
+
+    IOHIDManagerSetDeviceMatching(hid_manager, matching_dict);
+
+    IOHIDManagerRegisterDeviceMatchingCallback(hid_manager, handle_device_matching, NULL);
+    IOHIDManagerRegisterDeviceRemovalCallback(hid_manager, handle_device_removal, NULL);
+
+    IOHIDManagerScheduleWithRunLoop(hid_manager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
+    IOHIDManagerOpen(hid_manager, kIOHIDOptionsTypeNone);
+
+    CFRelease(matching_dict);
+    CFRelease(usage_page_ref);
+    CFRelease(usage_ref);
+
+    return 1;
+}
+
+void gamepad_update(Gamepad pads[GAMEPAD_MAX]) {
+    CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0, true);
+
+    for (int i = 0; i < GAMEPAD_MAX; i++) {
+        memset(&pads[i], 0, sizeof(Gamepad));
+
+        if (devices[i].device) {
+            pads[i].connected = 1;
+            memcpy(pads[i].buttons, devices[i].buttons, GAMEPAD_BUTTON_COUNT);
+
+            pads[i].axis_left_x = devices[i].axes[0];
+            pads[i].axis_left_y = devices[i].axes[1];
+            pads[i].axis_right_x = devices[i].axes[2];
+            pads[i].axis_right_y = devices[i].axes[3];
+            pads[i].trigger_left = devices[i].axes[4];
+            pads[i].trigger_right = devices[i].axes[5];
+        }
+    }
+}
+
+void gamepad_shutdown(void) {
+    if (hid_manager) {
+        for (int i = 0; i < GAMEPAD_MAX; i++) {
+            if (devices[i].device) {
+                IOHIDDeviceClose(devices[i].device, kIOHIDOptionsTypeNone);
+            }
+        }
+
+        IOHIDManagerUnscheduleFromRunLoop(hid_manager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
+        IOHIDManagerClose(hid_manager, kIOHIDOptionsTypeNone);
+        CFRelease(hid_manager);
+        hid_manager = NULL;
+    }
+}
+#endif // apple
 
 
 #if defined(__linux__)
@@ -219,125 +342,62 @@ typedef struct {
     }
 #endif // linux
 
-#elif defined(__APPLE__)
-    #include <IOKit/hid/IOHIDManager.h>
-    #include <IOKit/hid/IOHIDKeys.h>
+#ifdef _WIN32
+#include <windows.h>
+#include <xinput.h>
+#pragma comment(lib, "xinput.lib")
 
-    static IOHIDManagerRef hid_manager = NULL;
-    static IOHIDDeviceRef devices[GAMEPAD_MAX] = {0};
-    static CFDictionaryRef device_dictionaries[GAMEPAD_MAX] = {0};
+static XINPUT_STATE states[GAMEPAD_MAX];
 
-    // Temporary storage for async input data
-    static struct {
-        Gamepad* gamepad;
-        int index;
-    } gamepad_state[GAMEPAD_MAX] = {0};
-
-    static void gamepad_input_callback(void* context, IOReturn result, void* sender, IOHIDValueRef value) {
-        if (result != kIOReturnSuccess) return;
-
-        IOHIDElementRef element = IOHIDValueGetElement(value);
-        uint32_t usage_page = IOHIDElementGetUsagePage(element);
-        uint32_t usage = IOHIDElementGetUsage(element);
-        int32_t button_state = IOHIDValueGetIntegerValue(value);
-
-        struct { Gamepad* gamepad; int index; }* state = (struct { Gamepad* gamepad; int index; }*)context;
-        Gamepad* gamepad = state->gamepad;
-
-        if (usage_page == kHIDPage_Button) {
-            switch (usage) {
-                case 1: gamepad->buttons[GAMEPAD_BUTTON_A] = button_state; break;
-                case 2: gamepad->buttons[GAMEPAD_BUTTON_B] = button_state; break;
-                case 3: gamepad->buttons[GAMEPAD_BUTTON_X] = button_state; break;
-                case 4: gamepad->buttons[GAMEPAD_BUTTON_Y] = button_state; break;
-                case 5: gamepad->buttons[GAMEPAD_BUTTON_LEFT_SHOULDER] = button_state; break;
-                case 6: gamepad->buttons[GAMEPAD_BUTTON_RIGHT_SHOULDER] = button_state; break;
-                case 7: gamepad->buttons[GAMEPAD_BUTTON_BACK] = button_state; break;
-                case 8: gamepad->buttons[GAMEPAD_BUTTON_START] = button_state; break;
-                case 9: gamepad->buttons[GAMEPAD_BUTTON_LEFT_THUMB] = button_state; break;
-                case 10: gamepad->buttons[GAMEPAD_BUTTON_RIGHT_THUMB] = button_state; break;
-            }
-        }
-        else if (usage_page == kHIDPage_GenericDesktop) {
-            float normalized_value = (float)(IOHIDValueGetIntegerValue(value) - IOHIDElementGetLogicalMin(element)) /
-                                   (float)(IOHIDElementGetLogicalMax(element) - IOHIDElementGetLogicalMin(element));
-            normalized_value = normalized_value * 2.0f - 1.0f; // Convert to -1.0 to 1.0 range
-
-            switch (usage) {
-                case kHIDUsage_GD_X: gamepad->axis_left_x = normalized_value; break;
-                case kHIDUsage_GD_Y: gamepad->axis_left_y = normalized_value; break;
-                case kHIDUsage_GD_Z: gamepad->axis_right_x = normalized_value; break;
-                case kHIDUsage_GD_Rz: gamepad->axis_right_y = normalized_value; break;
-                case kHIDUsage_GD_Rx: gamepad->trigger_left = (normalized_value + 1.0f) / 2.0f; break;
-                case kHIDUsage_GD_Ry: gamepad->trigger_right = (normalized_value + 1.0f) / 2.0f; break;
-                case kHIDUsage_GD_DPadUp: gamepad->buttons[GAMEPAD_BUTTON_UP] = normalized_value > 0.5f; break;
-                case kHIDUsage_GD_DPadDown: gamepad->buttons[GAMEPAD_BUTTON_DOWN] = normalized_value > 0.5f; break;
-                case kHIDUsage_GD_DPadLeft: gamepad->buttons[GAMEPAD_BUTTON_LEFT] = normalized_value > 0.5f; break;
-                case kHIDUsage_GD_DPadRight: gamepad->buttons[GAMEPAD_BUTTON_RIGHT] = normalized_value > 0.5f; break;
-            }
-        }
-    }
-
-    static void gamepad_device_matching_callback(void* context, IOReturn result, void* sender, IOHIDDeviceRef device) {
-        if (result != kIOReturnSuccess) return;
-
-        for (int i = 0; i < GAMEPAD_MAX; i++) {
-            if (devices[i] == NULL) {
-                devices[i] = device;
-                CFRetain(device);
-
-                gamepad_state[i].index = i;
-                gamepad_state[i].gamepad = (Gamepad*)context + i;
-
-                IOHIDDeviceRegisterInputValueCallback(device, gamepad_input_callback, &gamepad_state[i]);
-                IOHIDDeviceScheduleWithRunLoop(device, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
-                break;
-            }
-        }
-    }
-
-    int gamepad_init(void) {
-        hid_manager = IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone);
-        if (!hid_manager) return 0;
-
-        IOHIDManagerSetDeviceMatching(hid_manager, NULL);
-        IOHIDManagerRegisterDeviceMatchingCallback(hid_manager, gamepad_device_matching_callback, NULL);
-        IOHIDManagerScheduleWithRunLoop(hid_manager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
-        IOHIDManagerOpen(hid_manager, kIOHIDOptionsTypeNone);
-
-        return 1;
-    }
-
-    void gamepad_update(Gamepad pads[GAMEPAD_MAX]) {
-        for (int i = 0; i < GAMEPAD_MAX; i++) {
-            pads[i].connected = (devices[i] != NULL);
-            if (!pads[i].connected) {
-                memset(&pads[i], 0, sizeof(Gamepad));
-            }
-        }
-
-        // Process events
-        CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0, true);
-    }
-
-    void gamepad_shutdown(void) {
-        if (hid_manager) {
-            for (int i = 0; i < GAMEPAD_MAX; i++) {
-                if (devices[i]) {
-                    IOHIDDeviceUnscheduleFromRunLoop(devices[i], CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
-                    CFRelease(devices[i]);
-                    devices[i] = NULL;
-                }
-            }
-
-            IOHIDManagerUnscheduleFromRunLoop(hid_manager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
-            IOHIDManagerClose(hid_manager, kIOHIDOptionsTypeNone);
-            CFRelease(hid_manager);
-            hid_manager = NULL;
-        }
-    }
-#endif // apple
-
-#ifdef __cplusplus
+int gamepad_init(void) {
+    ZeroMemory(states, sizeof(states));
+    return 1;
 }
+
+void gamepad_update(Gamepad pads[GAMEPAD_MAX]) {
+    for (DWORD i = 0; i < GAMEPAD_MAX; i++) {
+        XINPUT_STATE state;
+        ZeroMemory(&state, sizeof(XINPUT_STATE));
+
+        // Clear the gamepad state
+        memset(&pads[i], 0, sizeof(Gamepad));
+
+        if (XInputGetState(i, &state) == ERROR_SUCCESS) {
+            pads[i].connected = 1;
+
+            // Buttons
+            WORD buttons = state.Gamepad.wButtons;
+            pads[i].buttons[GAMEPAD_BUTTON_A] = (buttons & XINPUT_GAMEPAD_A) != 0;
+            pads[i].buttons[GAMEPAD_BUTTON_B] = (buttons & XINPUT_GAMEPAD_B) != 0;
+            pads[i].buttons[GAMEPAD_BUTTON_X] = (buttons & XINPUT_GAMEPAD_X) != 0;
+            pads[i].buttons[GAMEPAD_BUTTON_Y] = (buttons & XINPUT_GAMEPAD_Y) != 0;
+            pads[i].buttons[GAMEPAD_BUTTON_UP] = (buttons & XINPUT_GAMEPAD_DPAD_UP) != 0;
+            pads[i].buttons[GAMEPAD_BUTTON_DOWN] = (buttons & XINPUT_GAMEPAD_DPAD_DOWN) != 0;
+            pads[i].buttons[GAMEPAD_BUTTON_LEFT] = (buttons & XINPUT_GAMEPAD_DPAD_LEFT) != 0;
+            pads[i].buttons[GAMEPAD_BUTTON_RIGHT] = (buttons & XINPUT_GAMEPAD_DPAD_RIGHT) != 0;
+            pads[i].buttons[GAMEPAD_BUTTON_START] = (buttons & XINPUT_GAMEPAD_START) != 0;
+            pads[i].buttons[GAMEPAD_BUTTON_BACK] = (buttons & XINPUT_GAMEPAD_BACK) != 0;
+            pads[i].buttons[GAMEPAD_BUTTON_LEFT_SHOULDER] = (buttons & XINPUT_GAMEPAD_LEFT_SHOULDER) != 0;
+            pads[i].buttons[GAMEPAD_BUTTON_RIGHT_SHOULDER] = (buttons & XINPUT_GAMEPAD_RIGHT_SHOULDER) != 0;
+            pads[i].buttons[GAMEPAD_BUTTON_LEFT_THUMB] = (buttons & XINPUT_GAMEPAD_LEFT_THUMB) != 0;
+            pads[i].buttons[GAMEPAD_BUTTON_RIGHT_THUMB] = (buttons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0;
+
+            // Axes (normalize from -32768 to 32767 to -1 to 1)
+            pads[i].axis_left_x = state.Gamepad.sThumbLX / 32768.0f;
+            pads[i].axis_left_y = -state.Gamepad.sThumbLY / 32768.0f;  // Flip Y
+            pads[i].axis_right_x = state.Gamepad.sThumbRX / 32768.0f;
+            pads[i].axis_right_y = -state.Gamepad.sThumbRY / 32768.0f; // Flip Y
+
+            // Triggers (normalize from 0 to 255 to 0 to 1)
+            pads[i].trigger_left = state.Gamepad.bLeftTrigger / 255.0f;
+            pads[i].trigger_right = state.Gamepad.bRightTrigger / 255.0f;
+        }
+    }
+}
+
+void gamepad_shutdown(void) {
+    // Nothing needed for XInput shutdown
+}
+#endif // windows
+
 #endif // GAMEPAD_H

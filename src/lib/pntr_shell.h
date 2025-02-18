@@ -29,7 +29,11 @@
 #include "external/fenster.h"
 #endif
 
+#ifdef BUILD_LIBRETRO
+#include "raudio-light-fenster.h"
+#else
 #include "raudio.c"
+#endif
 
 // a "window" is a fenster instance
 typedef struct fenster pntr_window;

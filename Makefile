@@ -14,7 +14,7 @@ ifeq ($(OS),Windows_NT)
 else
 	UNAME_S := $(shell uname -s)
 	ifneq (,$(findstring emcc,$(CC)))
-		LDFLAGS = -lm -DMA_ENABLE_AUDIO_WORKLETS -sAUDIO_WORKLET=1 -sWASM_WORKERS=1 -sASYNCIFY -DPLATFORM_WEB
+		LDFLAGS = -lm -DMA_ENABLE_AUDIO_WORKLETS -sAUDIO_WORKLET=1 -sWASM_WORKERS=1 -sASYNCIFY -DPLATFORM_WEB --preload-file assets
 		TARGET_EXT = .html
 		RETRO_EXT = .wasm
 	else ifeq ($(UNAME_S),Darwin)

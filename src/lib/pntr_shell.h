@@ -32,7 +32,7 @@
 #include "raudio.c"
 
 #ifdef BUILD_LIBRETRO
-#include "raudio-raudio.h"
+#include "raudio-libretro.h"
 #endif
 
 // a "window" is a fenster instance

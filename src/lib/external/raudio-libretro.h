@@ -32,6 +32,14 @@ typedef struct {
     } libretro;
 } ma_context_ex;
 
+typedef struct
+{
+    ma_device device;   /* Make this the first member so we can cast between ma_device and ma_device_ex. */
+    struct {
+        // TODO:  put any data needed for libretro device here
+    } libretro;
+} ma_device_ex;
+
 // TODO: these are example callbacks that pull the data out of miniaudio
 // you need to connect libretro up to these so it can get the data
 

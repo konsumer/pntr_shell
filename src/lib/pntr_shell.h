@@ -24,18 +24,51 @@
 #include "pntr.h"
 
 #ifdef BUILD_LIBRETRO
-#include "libretro.h"
-#include "external/raudio-libretro.h"
+    #include "libretro.h"
+    #include "external/raudio-libretro.h"
 #else
-#include "raudio.c"
+    #include "raudio.c"
 #endif
 
 #ifdef EMSCRIPTEN
-#include "external/fenster-emscripten.h"
+    #include "external/fenster-emscripten.h"
 #else
-#include "external/fenster.h"
+    #include "external/fenster.h"
 #endif
 
+
+#if defined(BUILD_LIBRETRO)
+
+#include <libretro.h>
+    #ifndef EXTERNC
+        #ifdef __cplusplus
+            #define EXTERNC extern "C"
+        #else
+            #define EXTERNC
+        #endif
+    #endif
+
+    #ifndef EXPORT
+        #if defined(CPPCLI)
+            #define EXPORT EXTERNC
+        #elif defined(_WIN32)
+            #define EXPORT EXTERNC __declspec(dllexport)
+        #else
+            #define EXPORT EXTERNC __attribute__((visibility("default")))
+        #endif
+    #endif
+#endif
+
+retro_audio_sample_batch_t retro_audio_batch_cb = NULL;
+retro_input_state_t retro_input_state_cb        = NULL;
+
+EXPORT void retro_set_input_state(retro_input_state_t cb) {
+   retro_input_state_cb = cb;
+}
+
+EXPORT void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb) {
+   retro_audio_batch_cb = cb;
+}
 
 // a "window" is a fenster instance
 typedef struct fenster pntr_window;
@@ -218,11 +251,7 @@ pntr_window* pntr_shell_init(pntr_image* screen, char* title) {
 void pntr_shell_unload(pntr_window* window) {
   fenster_close(window);
 
-  #ifdef BUILD_LIBRETRO
-    CloseLibretroAudioDevice();
-  #else
-    CloseAudioDevice();
-  #endif
+  CloseAudioDevice();
 
   for (int i = 0; i < cvector_size(loaded_sounds); ++i) {
     UnloadMusicStream(loaded_sounds[i]);

@@ -69,6 +69,9 @@ make example_libretro.dll
 
 # make the app as libretro-core for emscripten
 emmake make example_libretro.wasm
+
+# run with retroarch
+retroarch -L ./example_libretro .
 ```
 
 ### code

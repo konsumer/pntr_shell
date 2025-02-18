@@ -2,7 +2,7 @@
 
 .PHONY: clean
 
-CFLAGS ?= -std=gnu99 -I src/lib -I src/lib/external
+CFLAGS ?= -I src/lib -I src/lib/external
 
 # debug
 # CFLAGS += -g

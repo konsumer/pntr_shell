@@ -29,10 +29,10 @@ else
 endif
 
 example$(TARGET_EXT): src/example.c
-	$(CC) $? -o $(TARGET) $(CFLAGS) $(LDFLAGS)
+	$(CC) $? $(CFLAGS) $(LDFLAGS) -o $@
 
 example$(RETRO_EXT): src/example.c
-	$(CC) $? -o $(TARGET) $(CFLAGS) $(LDFLAGS) -DBUILD_LIBRETRO
+	$(CC) $? $(CFLAGS) $(LDFLAGS) -DBUILD_LIBRETRO -o $@
 
 clean:
 	rm -f example example.exe example.html example.js example.wasm
